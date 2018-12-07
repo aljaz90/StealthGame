@@ -19,7 +19,6 @@ public:
 	ABlackHole();
 
 protected:
-	int times = 0;
 
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UStaticMeshComponent* BlackHole;
