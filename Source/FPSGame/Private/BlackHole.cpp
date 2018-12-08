@@ -16,10 +16,9 @@ ABlackHole::ABlackHole()
 	RootComponent = BlackHole;
 
 	InnerBlackHole = CreateDefaultSubobject<USphereComponent>(TEXT("InnerBlackHole"));
-	InnerBlackHole->SetSphereRadius(200);
+	InnerBlackHole->SetSphereRadius(100);
 	InnerBlackHole->SetupAttachment(BlackHole);
-	InnerBlackHole->OnComponentBeginOverlap.AddDynamic(this, &ABlackHole::OnOverlapBegin);
-
+	InnerBlackHole->OnComponentBeginOverlap.AddDynamic(this, &ABlackHole::OverlapInnerSphere);
 
 	OutterBlackHole = CreateDefaultSubobject<USphereComponent>(TEXT("OutterBlackHole"));
 	OutterBlackHole->SetSphereRadius(3000);
@@ -27,9 +26,14 @@ ABlackHole::ABlackHole()
 
 }
 
-void ABlackHole::OnOverlapBegin(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
+void ABlackHole::BeginPlay()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Inner Overlap Called"))
+	Super::BeginPlay();
+}
+
+void ABlackHole::OverlapInnerSphere(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
 	if (OtherActor)
 	{
 		OtherActor->Destroy();
@@ -41,14 +45,18 @@ void ABlackHole::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	TArray<UPrimitiveComponent*> OverlappingComponents;
-	OutterBlackHole->GetOverlappingComponents(OverlappingComponents);
+	TArray<UPrimitiveComponent*> OverlappingOuterComponents;
 
-	for (int32 i = 0; i < OverlappingComponents.Num(); i++)
+	OutterBlackHole->GetOverlappingComponents(OverlappingOuterComponents);
+
+	for (int32 i = 0; i < OverlappingOuterComponents.Num(); i++)
 	{
-		UPrimitiveComponent* Component = OverlappingComponents[i];
-		UE_LOG(LogTemp, Error, TEXT("Overlapping!!!"))
-		//Component->AddRadialForce(GetActorLocation(), 1000.0, 10000.0, ERadialImpulseFalloff::RIF_Constant, false);
+		UPrimitiveComponent* Component = OverlappingOuterComponents[i];
+
+		if (Component && Component->IsSimulatingPhysics())
+		{
+			Component->AddRadialForce(GetActorLocation(), OutterBlackHole->GetScaledSphereRadius(), -2000.0, ERadialImpulseFalloff::RIF_Constant, true);
+		}
 	}
 }
 
